@@ -1,11 +1,8 @@
 use bm::{chacha20_recv, chacha20_send};
-use chacha20::cipher::{KeyIvInit, StreamCipher};
-use chacha20::ChaCha20;
 use rsa::pkcs8::DecodePublicKey;
 use rsa::{PaddingScheme, PublicKey, RsaPublicKey};
 use simple_logger::SimpleLogger;
 use std::io::Read;
-use std::io::Write;
 use std::net::TcpListener;
 
 fn main() {

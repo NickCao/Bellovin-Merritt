@@ -4,7 +4,7 @@ use chacha20::{
 };
 use std::io::{Read, Result, Write};
 
-pub fn chacha20_send<'a, T: Into<Key>, W: Write>(
+pub fn chacha20_send<T: Into<Key>, W: Write>(
     key: T,
     buffer: &[u8],
     stream: &mut W,
@@ -19,7 +19,7 @@ pub fn chacha20_send<'a, T: Into<Key>, W: Write>(
     Ok(())
 }
 
-pub fn chacha20_recv<'a, T: Into<Key>, R: Read>(key: T, stream: &mut R) -> Result<Vec<u8>> {
+pub fn chacha20_recv<T: Into<Key>, R: Read>(key: T, stream: &mut R) -> Result<Vec<u8>> {
     let mut nonce = [0u8; 12];
     let mut len = [0u8; 8];
     stream.read_exact(&mut nonce)?;
