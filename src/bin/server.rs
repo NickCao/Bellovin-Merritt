@@ -71,4 +71,15 @@ fn main() {
     cipher.apply_keystream(&mut nb_client);
     assert_eq!(nb, nb_client);
     log::info!("verified nb from client");
+
+    let mut nonce = [0u8; 12];
+    let mut len = [0u8; 8];
+    stream.read_exact(&mut nonce).unwrap();
+    stream.read_exact(&mut len).unwrap();
+    let len = usize::from_le_bytes(len);
+    let mut buffer = vec![0u8; len];
+    stream.read_exact(&mut buffer).unwrap();
+    let mut cipher = ChaCha20::new(&ks.into(), &nonce.into());
+    cipher.apply_keystream(&mut buffer);
+    log::info!("got message from client: {}", String::from_utf8(buffer).unwrap());
 }

@@ -76,4 +76,13 @@ fn main() {
     stream.write_all(&nonce).unwrap();
     stream.write_all(&nb).unwrap();
     log::info!("sent encrypted nb to server");
+
+    let mut message = "hello Bellovin-Merritt".as_bytes().to_vec();
+    let nonce: [u8; 12] = rand::random();
+    let mut cipher = ChaCha20::new(&ks.into(), &nonce.into());
+    cipher.apply_keystream(&mut message);
+    stream.write_all(&nonce).unwrap();
+    stream.write_all(&message.len().to_le_bytes()).unwrap();
+    stream.write_all(&message).unwrap();
+    log::info!("sent encrypted message to server");
 }
