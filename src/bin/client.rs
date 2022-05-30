@@ -37,12 +37,18 @@ fn main() {
 
     let nanb = chacha20_recv(ks, &mut stream).unwrap();
     assert_eq!(nanb[..8], na);
-    log::info!("got na from server");
+    log::info!("verified na from server");
 
     chacha20_send(ks, &nanb[8..], &mut stream).unwrap();
     log::info!("sent nb to server");
 
-    let message = "hello Bellovin-Merritt".as_bytes().to_vec();
+    let message = "Hello Bellovin".as_bytes().to_vec();
     chacha20_send(ks, &message, &mut stream).unwrap();
     log::info!("sent message to server");
+
+    let message = chacha20_recv(ks, &mut stream).unwrap();
+    log::info!(
+        "got message from server: {}",
+        String::from_utf8(message).unwrap()
+    );
 }

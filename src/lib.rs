@@ -4,11 +4,7 @@ use chacha20::{
 };
 use std::io::{Read, Result, Write};
 
-pub fn chacha20_send<T: Into<Key>, W: Write>(
-    key: T,
-    buffer: &[u8],
-    stream: &mut W,
-) -> Result<()> {
+pub fn chacha20_send<T: Into<Key>, W: Write>(key: T, buffer: &[u8], stream: &mut W) -> Result<()> {
     let nonce: [u8; 12] = rand::random();
     let mut cipher = ChaCha20::new(&key.into(), &nonce.into());
     let mut buffer = buffer.to_vec();
