@@ -1,9 +1,7 @@
-use chacha20::cipher::{KeyIvInit, StreamCipher};
-use chacha20::ChaCha20;
+use bm::{chacha20_recv, chacha20_send};
 use rsa::pkcs8::EncodePublicKey;
 use rsa::{PaddingScheme, RsaPrivateKey, RsaPublicKey};
 use simple_logger::SimpleLogger;
-use std::io::Read;
 use std::io::Write;
 use std::net::TcpStream;
 
@@ -20,69 +18,32 @@ fn main() {
 
     let id = [0x42; 8]; // TODO: make id configurable
     let pw = [0x42; 32]; // TODO; make pw configurable
-    let nonce: [u8; 12] = rand::random();
-    let mut cipher = ChaCha20::new(&pw.into(), &nonce.into());
-    let mut buffer = pk.to_public_key_der().unwrap().as_ref().to_owned();
-    cipher.apply_keystream(&mut buffer);
-    log::info!("encrypted publickey");
-
+    let buffer = pk.to_public_key_der().unwrap().as_ref().to_owned();
     stream.write_all(&id).unwrap();
-    stream.write_all(&nonce).unwrap();
-    stream.write_all(&buffer.len().to_le_bytes()).unwrap();
-    stream.write_all(&buffer).unwrap();
+    chacha20_send(pw, &buffer, &mut stream).unwrap();
     log::info!("sent identity and encrypted publickey to server");
 
     // step 3
-    let mut nonce = [0u8; 12];
-    let mut len = [0u8; 8];
-    stream.read_exact(&mut nonce).unwrap();
-    stream.read_exact(&mut len).unwrap();
-    let len = usize::from_le_bytes(len);
-    let mut buffer = vec![0u8; len];
-    stream.read_exact(&mut buffer).unwrap();
-    log::info!("got encrypted session key from server");
-
-    let mut cipher = ChaCha20::new(&pw.into(), &nonce.into());
-    cipher.apply_keystream(&mut buffer);
+    let ks_vec = chacha20_recv(pw, &mut stream).unwrap();
     let ks_vec = sk
-        .decrypt(PaddingScheme::new_pkcs1v15_encrypt(), &buffer)
+        .decrypt(PaddingScheme::new_pkcs1v15_encrypt(), &ks_vec)
         .unwrap();
     let mut ks = [0u8; 32];
     ks.copy_from_slice(&ks_vec);
     log::info!("decrypted session key");
 
     let na: [u8; 8] = rand::random();
-    let mut na_encrypted = na.clone();
-    let nonce: [u8; 12] = rand::random();
-    let mut cipher = ChaCha20::new(&ks.into(), &nonce.into());
-    cipher.apply_keystream(&mut na_encrypted);
-    stream.write_all(&nonce).unwrap();
-    stream.write_all(&na_encrypted).unwrap();
+    chacha20_send(ks, &na, &mut stream).unwrap();
     log::info!("sent encrypted na to server");
 
-    let mut nanb = [0u8; 16];
-    let mut nonce = [0u8; 12];
-    stream.read_exact(&mut nonce).unwrap();
-    stream.read_exact(&mut nanb).unwrap();
-    let mut cipher = ChaCha20::new(&ks.into(), &nonce.into());
-    cipher.apply_keystream(&mut nanb);
+    let nanb = chacha20_recv(ks, &mut stream).unwrap();
     assert_eq!(nanb[..8], na);
     log::info!("verified na from server");
 
-    let mut nb = &mut nanb[8..];
-    let nonce: [u8; 12] = rand::random();
-    let mut cipher = ChaCha20::new(&ks.into(), &nonce.into());
-    cipher.apply_keystream(&mut nb);
-    stream.write_all(&nonce).unwrap();
-    stream.write_all(&nb).unwrap();
+    chacha20_send(ks, &nanb[8..], &mut stream).unwrap();
     log::info!("sent encrypted nb to server");
 
-    let mut message = "hello Bellovin-Merritt".as_bytes().to_vec();
-    let nonce: [u8; 12] = rand::random();
-    let mut cipher = ChaCha20::new(&ks.into(), &nonce.into());
-    cipher.apply_keystream(&mut message);
-    stream.write_all(&nonce).unwrap();
-    stream.write_all(&message.len().to_le_bytes()).unwrap();
-    stream.write_all(&message).unwrap();
+    let message = "hello Bellovin-Merritt".as_bytes().to_vec();
+    chacha20_send(ks, &message, &mut stream).unwrap();
     log::info!("sent encrypted message to server");
 }
