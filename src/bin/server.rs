@@ -62,4 +62,13 @@ fn main() {
     stream.write_all(&nonce).unwrap();
     stream.write_all(&nanb).unwrap();
     log::info!("sent encrypted nanb to client");
+
+    let mut nb_client = [0u8; 8];
+    let mut nonce = [0u8; 12];
+    stream.read_exact(&mut nonce).unwrap();
+    stream.read_exact(&mut nb_client).unwrap();
+    let mut cipher = ChaCha20::new(&ks.into(), &nonce.into());
+    cipher.apply_keystream(&mut nb_client);
+    assert_eq!(nb, nb_client);
+    log::info!("verified nb from client");
 }

@@ -66,6 +66,14 @@ fn main() {
     stream.read_exact(&mut nanb).unwrap();
     let mut cipher = ChaCha20::new(&ks.into(), &nonce.into());
     cipher.apply_keystream(&mut nanb);
-    assert!(nanb[0..8] == na);
+    assert_eq!(nanb[..8], na);
     log::info!("verified na from server");
+
+    let mut nb = &mut nanb[8..];
+    let nonce: [u8; 12] = rand::random();
+    let mut cipher = ChaCha20::new(&ks.into(), &nonce.into());
+    cipher.apply_keystream(&mut nb);
+    stream.write_all(&nonce).unwrap();
+    stream.write_all(&nb).unwrap();
+    log::info!("sent encrypted nb to server");
 }
